@@ -1,0 +1,11 @@
+{
+    "name": "xwave-platform",
+    "private": true,
+    "version": "1.0.0",
+    "scripts": {
+      "start:frontend": "npm run dev --prefix xwave-frontend",
+      "start:backend": "npm run dev --prefix xwave-backend",
+      "install:all": "npm install --prefix xwave-frontend && npm install --prefix xwave-backend"
+    }
+  }
+  

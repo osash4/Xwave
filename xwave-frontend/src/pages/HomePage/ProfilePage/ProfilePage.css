@@ -1,0 +1,139 @@
+/* Perfil Page */
+.profile-page {
+  padding: 20px;
+  background-color: #121212; /* Fondo oscuro */
+  font-family: 'Spotify', sans-serif; /* Fuente personalizada */
+}
+
+/* Header del perfil */
+.profile-header {
+  display: flex;
+  justify-content: space-between;
+  padding: 20px;
+  background-color: #1d475f; /* Fondo oscuro */
+  color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); /* Sombra para resaltar */
+}
+
+/* Contenido del header */
+.profile-header-content {
+  display: flex;
+  align-items: center;
+}
+
+/* Imagen de perfil */
+.profile-img {
+  border-radius: 50%;
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border: 3px solid #1DB954; /* Borde verde alrededor de la imagen */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3); /* Sombra suave */
+}
+
+/* Imagen de perfil placeholder */
+.profile-img-placeholder {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background-color: #ccc;
+}
+
+/* Información del usuario */
+.user-info h1 {
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+
+/* Sección de contenido */
+.content-section {
+  padding: 20px;
+  background-color: #181818; /* Fondo oscuro para las secciones */
+  border-radius: 12px; /* Bordes redondeados */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Sombra suave */
+}
+
+/* Elementos de contenido */
+.content-item {
+  background-color: #2596be; /* Color brillante para los ítems */
+  padding: 12px;
+  margin: 8px;
+  border-radius: 8px;
+  color: white;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15); /* Sombra suave */
+  transition: transform 0.2s ease-in-out; /* Efecto de hover */
+}
+
+.content-item:hover {
+  transform: scale(1.05); /* Efecto de agrandado al pasar el ratón */
+}
+
+/* Tarjetas de estadísticas */
+.stat-card {
+  background-color: #333; /* Fondo oscuro para las tarjetas */
+  padding: 15px;
+  margin: 10px;
+  border-radius: 8px;
+  text-align: center;
+  color: white;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15); /* Sombra sutil */
+}
+
+/* Botones de acciones */
+.profile-actions button {
+  padding: 10px 20px;
+  background-color: #2596be;
+  color: white;
+  border: none;
+  cursor: pointer;
+  border-radius: 50px; /* Bordes redondeados */
+  transition: background-color 0.3s ease, transform 0.2s ease-in-out;
+}
+
+.profile-actions button:hover {
+  background-color: #1ed760; /* Efecto hover */
+  transform: scale(1.05); /* Efecto de agrandado */
+}
+
+/* Sidebar */
+.sidebar {
+  width: 70px; /* Ancho inicial pequeño */
+  transition: width 0.3s ease;
+}
+
+.sidebar.open {
+  width: 250px; /* Ancho cuando está abierto */
+}
+
+.sidebar-items .sidebar-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 15px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.sidebar-items .sidebar-item:hover {
+  background-color: #2596be; /* Hover en los íconos */
+}
+
+/* Espaciado de la sección de contenido */
+.content-section {
+  padding: 20px;
+  margin: 10px;
+  background-color: #181818;
+  border-radius: 12px;
+}
+
+/* Estilo para los iconos dentro del sidebar */
+.sidebar-items .sidebar-item i {
+  font-size: 18px;
+  color: white;
+  transition: transform 0.2s ease;
+}
+
+.sidebar-items .sidebar-item:hover i {
+  transform: scale(1.2); /* Agrandar íconos en hover */
+}
