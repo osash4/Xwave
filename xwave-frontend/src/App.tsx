@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './auth/AuthContext';
 import ProtectedRoute from './auth/ProtectedRoute';
@@ -27,40 +27,45 @@ import BlockchainView from './components/blockchain/BlockchainView';
 import ValidatorForm from './components/blockchain/ValidatorForm';
 
 import SystemHealthCheck from './components/SystemHealthCheck';
+import GlobalStyle from './styles/GlobalStyle';
 
 const App: React.FC = () => {
-  useEffect(() => {
-    document.body.style.backgroundColor = '#d2e9ed';
-    document.body.style.color = '#1b4452';
-  }, []);
-
   return (
-    <Router>
-      <AuthProvider>
-        <BlockchainProvider>
-          <WebSocketProvider>
-            <SystemHealthCheck />
-            <AppRoutes />
-          </WebSocketProvider>
-        </BlockchainProvider>
-      </AuthProvider>
-    </Router>
+    <>
+      <GlobalStyle />
+      <Router>
+        <AuthProvider>
+          <BlockchainProvider>
+            <WebSocketProvider>
+              <SystemHealthCheck />
+              <AppRoutes />
+            </WebSocketProvider>
+          </BlockchainProvider>
+        </AuthProvider>
+      </Router>
+    </>
   );
 };
 
 const AppRoutes: React.FC = () => {
-  const { messages, connectionStatus } = useWebSocket();
+  const { messages, connectionStatus, loading, error } = useWebSocket();
 
+  if (loading) return <p>Cargando WebSocket...</p>;
+  if (error) return <p>Error al conectar WebSocket: {error}</p>;
+
+  // Mostrar mensajes de WebSocket (si lo deseas)
+  // Nota: Puedes eliminar este bloque si no es necesario para la interfaz de usuario
   return (
     <div>
+      {/* Mostrar estado de la conexión y mensajes (solo para debug) */}
       <p>Estado de conexión: {connectionStatus}</p>
       <ul>
-        {messages.map((msg: string | number | boolean | React.ReactElement<any, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | React.ReactPortal | null | undefined, index: React.Key | null | undefined) => (
+        {messages.map((msg: string, index: number) => (
           <li key={index}>{msg}</li>
         ))}
       </ul>
+
       <Routes>
-        {/* Rutas principales */}
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signin" element={<Login />} />
@@ -70,18 +75,16 @@ const AppRoutes: React.FC = () => {
         <Route path="/explore/gaming" element={<ExploreGaming />} />
         <Route path="/explore/education" element={<ExploreEducation />} />
         <Route path="/music" element={<MusicPage />} />
-        <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
 
-        {/* Rutas protegidas relacionadas con billetera y blockchain */}
+        {/* Rutas protegidas */}
+        <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
         <Route path="/wallet" element={<ProtectedRoute><WalletDashboard /></ProtectedRoute>} />
         <Route path="/artist-portal" element={<ProtectedRoute><ArtistPortal /></ProtectedRoute>} />
-        <Route path="/wallet-connector" element={<WalletConnector />} />
+        <Route path="/wallet-connector" element={<ProtectedRoute><WalletConnector /></ProtectedRoute>} />
         <Route path="/marketplace" element={<ProtectedRoute><ContentMarketplace /></ProtectedRoute>} />
-
-        {/* Información de blockchain */}
-        <Route path="/blockchain-info" element={<BlockchainInfo />} />
+        <Route path="/blockchain-info" element={<ProtectedRoute><BlockchainInfo /></ProtectedRoute>} />
         <Route path="/add-transaction" element={<ProtectedRoute><TransactionForm /></ProtectedRoute>} />
-        <Route path="/view-blockchain" element={<BlockchainView />} />
+        <Route path="/view-blockchain" element={<ProtectedRoute><BlockchainView /></ProtectedRoute>} />
         <Route path="/add-validator" element={<ProtectedRoute><ValidatorForm /></ProtectedRoute>} />
       </Routes>
     </div>

@@ -1,15 +1,18 @@
 import axios from 'axios';
 
-// URL del backend actualizada
-const API_URL = 'http://127.0.0.1:8083/rpc'; // Cambié la URL a la proporcionada
-
 // Crear una instancia de axios con timeout y baseURL
 const instance = axios.create({
-  baseURL: API_URL,
-  timeout: 10000, // Timeout de 10 segundos para cada solicitud
+  baseURL: 'http://localhost:8083/api', // Utiliza el prefijo del proxy configurado en Vite
+  timeout: 30000, // Timeout de 30 segundos para cada solicitud
+  headers: {
+    'Content-Type': 'application/json',
+  },
 });
 
-// Función para inicializar la conexión
+/**
+ * Verifica la conexión inicial con la blockchain.
+ * @returns {Promise<boolean>} True si la conexión es exitosa, False en caso contrario.
+ */
 export const initializeBlockchainConnection = async (): Promise<boolean> => {
   try {
     console.log('Verificando la conexión con la blockchain...');
@@ -28,16 +31,20 @@ export const initializeBlockchainConnection = async (): Promise<boolean> => {
       return false;
     }
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-    console.error('Error al verificar la conexión:', errorMessage);
+    console.error('Error al verificar la conexión:', error instanceof Error ? error.message : error);
     return false;
   }
 };
 
-// Función genérica para hacer solicitudes JSON-RPC
-const makeJsonRpcRequest = async (method: string, params: any[] = []): Promise<any> => {
+/**
+ * Realiza una solicitud JSON-RPC genérica al servidor backend.
+ * @param {string} method - Método JSON-RPC.
+ * @param {any[]} params - Parámetros de la solicitud.
+ * @returns {Promise<any>} Resultado de la solicitud.
+ */
+const makeJsonRpcRequest = async (method: string, params: any[] = []) => {
   try {
-    console.log(`Haciendo solicitud JSON-RPC a ${API_URL} con método: ${method}`);
+    console.log(`Haciendo solicitud JSON-RPC: método="${method}"`);
     const response = await instance.post('', {
       jsonrpc: '2.0',
       method,
@@ -46,73 +53,83 @@ const makeJsonRpcRequest = async (method: string, params: any[] = []): Promise<a
     });
 
     if (response.data && response.data.result) {
-      console.log(`Respuesta JSON-RPC para método "${method}":`, response.data.result);
       return response.data.result;
     } else {
-      console.error(`Error en la respuesta JSON-RPC para el método "${method}":`, response.data.error || 'Respuesta inválida');
-      throw new Error(response.data.error?.message || 'Error desconocido');
+      throw new Error(response.data.error?.message || 'Respuesta inválida del servidor');
     }
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-    console.error(`Error al hacer la solicitud JSON-RPC para método "${method}":`, errorMessage);
-    throw new Error(errorMessage);
+    if (axios.isAxiosError(error)) {
+      console.error(`Error en Axios para método "${method}":`, error.message);
+      console.error('Detalles del error:', error.response?.data);
+    } else {
+      console.error(`Error desconocido en método "${method}":`, error);
+    }
+    throw error;
   }
 };
 
-// Función para obtener la cadena de bloques
+/**
+ * Verifica la salud del sistema.
+ * @returns {Promise<any>} Estado del sistema.
+ */
+export const checkSystemHealth = async (): Promise<any> => {
+  try {
+    const response = await instance.get('/system_health'); // Aquí cambias a GET
+    return response.data;
+  } catch (error) {
+    console.error('Error al obtener la salud del sistema:', error);
+    throw new Error('Error al obtener la salud del sistema');
+  }
+};
+/**
+ * Obtiene la cadena de bloques.
+ * @returns {Promise<any>} Nombre de la cadena de bloques.
+ */
 export const getBlockchain = async (): Promise<any> => {
   return makeJsonRpcRequest('system_chain');
 };
 
-// Función para obtener el balance de una cuenta
+/**
+ * Obtiene el balance de una cuenta específica.
+ * @param {string} address - Dirección de la cuenta.
+ * @returns {Promise<any>} Balance de la cuenta.
+ */
 export const getAccountBalance = async (address: string): Promise<any> => {
-  return makeJsonRpcRequest('account_balance', [address]);
+  return makeJsonRpcRequest('get_balance', [address]);
 };
 
-// Función para agregar una transacción
+/**
+ * Envía una transacción desde un remitente a un destinatario.
+ * @param {string} sender - Dirección del remitente.
+ * @param {string} receiver - Dirección del destinatario.
+ * @param {number} amount - Cantidad a transferir.
+ * @returns {Promise<any>} Resultado de la transacción.
+ */
 export const addTransaction = async (sender: string, receiver: string, amount: number): Promise<any> => {
-  try {
-    console.log(`Enviando transacción de ${sender} a ${receiver} por ${amount} tokens...`);
-    const result = await makeJsonRpcRequest('add_transaction', [sender, receiver, amount]);
-    console.log('Transacción enviada exitosamente:', result);
-    return result;
-  } catch (error) {
-    console.error('Error al enviar la transacción:', error);
-    throw new Error('Error desconocido al enviar la transacción');
-  }
+  return makeJsonRpcRequest('add_transaction', [sender, receiver, amount]);
 };
 
-// Función para agregar un validador
+/**
+ * Agrega un validador a la red.
+ * @param {string} validatorAddress - Dirección del validador.
+ * @param {string} stake - Cantidad de stake asignada.
+ * @returns {Promise<any>} Resultado de la operación.
+ */
 export const addValidator = async (validatorAddress: string, stake: string): Promise<any> => {
+  return makeJsonRpcRequest('add_validator', [validatorAddress, stake]);
+};
+
+/**
+ * Obtiene la altura actual del bloque.
+ * @returns {Promise<number>} Altura del bloque.
+ */
+export const getBlockHeight = async (): Promise<number> => {
   try {
-    console.log(`Agregando validador: ${validatorAddress} con stake: ${stake}`);
-    const result = await makeJsonRpcRequest('add_validator', [validatorAddress]);
-    console.log('Validador agregado exitosamente:', result);
-    return result;
+    console.log('Obteniendo la altura del bloque...');
+    const response = await instance.get('/block-height');
+    return response.data.height;
   } catch (error) {
-    console.error('Error al agregar el validador:', error instanceof Error ? error.message : error);
-    throw new Error('Error desconocido al agregar el validador');
+    console.error('Error al obtener la altura del bloque:', error);
+    throw new Error('Error desconocido al obtener la altura del bloque');
   }
 };
-
-// Función para verificar la salud del sistema
-export const checkSystemHealth = async (): Promise<any> => {
-  try {
-    console.log('Verificando la salud del sistema...');
-    const result = await makeJsonRpcRequest('system_health');
-    console.log('Estado del sistema:', result);
-    return result;
-  } catch (error) {
-    console.error('Error al verificar la salud del sistema:', error);
-    throw new Error('Error desconocido al verificar la salud del sistema');
-  }
-};
-
-
-export const getBlockHeight = async () => {
-  // Lógica para obtener la altura del bloque, por ejemplo, una solicitud API
-  const response = await fetch('http://tu-api.com/block-height');
-  const data = await response.json();
-  return data.height;
-};
-

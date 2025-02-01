@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use tokio;
 
 // URL del API
-const API_URL: &str = "http://localhost:9933/rpc";
+const API_URL: &str = "http://localhost:8083/rpc";
 
 // Estructura para manejar la respuesta JSON del balance
 #[derive(Deserialize)]

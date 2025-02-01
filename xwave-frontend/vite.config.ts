@@ -33,4 +33,13 @@ export default defineConfig({
       'os-browserify/browser', // Asegura que os-browserify se incluya
     ],
   },
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8083', // URL de tu backend
+        changeOrigin: true,             // Cambia el origen de la solicitud
+        rewrite: (path) => path.replace(/^\/api/, ''), // Opcional: elimina el prefijo '/api'
+      },
+    },
+  },
 });

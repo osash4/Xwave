@@ -13,10 +13,11 @@ const Login: React.FC = () => {
 
   // Redirige a la página de perfil si el usuario ya está autenticado
   useEffect(() => {
+    // Verifica si el usuario está autenticado y no está ya en la página de perfil
     if (isSignedIn) {
       navigate('/profile'); // Redirige al perfil si está autenticado
     }
-  }, [isSignedIn, navigate]);
+  }, [isSignedIn, navigate]); // Asegúrate de que se ejecute solo cuando isSignedIn cambie
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

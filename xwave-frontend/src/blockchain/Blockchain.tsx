@@ -1,323 +1,178 @@
-interface ContractData {
-  contentId?: string;
-  amount?: number;
-  creator?: string;
-  licensee?: string;
-  duration?: number;
-  metadata?: string;
-  tokenId?: string;
-  expirationDate?: number;
-  type?: string; // Agregado para poder utilizar el tipo
-  contentHashes?: string[]; // Agregado para contenido hash, si es necesario
-  [key: string]: any; // Permite otras propiedades adicionales si las hubiera
-}
+import * as crypto from 'crypto';
+import { Transaction } from './Transaction'
 
-export class Blockchain {
-  [x: string]: any;
-  chain: Block[];
-  difficulty: number;
-  pendingTransactions: Transaction[];
-  validators: Map<string, number>;
-  minimumStake: number;
-  penalizedValidators: Map<string, number>;
-  lastValidatorTimestamps: Map<string, number>;
-  doubleSigningProofs: Map<string, { height: number; hash: string }[]>;
-  slashingPenalty: number;
-
-
-  // Método connect (agregado)
-  async connect() {
-    try {
-      // Aquí puedes agregar la lógica de conexión a tu red o API blockchain.
-      console.log("Conectando a la blockchain...");
-      // Simulando una conexión exitosa.
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulación de espera por la conexión.
-      console.log("Conexión exitosa a la blockchain");
-    } catch (error) {
-      console.error("Error al conectar a la blockchain:", error);
-    }
-  }
-
-  constructor() {
-    this.chain = [this.createGenesisBlock()];
-    this.difficulty = 4;
-    this.pendingTransactions = [];
-    this.validators = new Map();
-    this.minimumStake = 1000;
-    this.penalizedValidators = new Map();
-    this.lastValidatorTimestamps = new Map();
-    this.doubleSigningProofs = new Map();
-    this.slashingPenalty = 0.5;
-  }
-
-  createGenesisBlock() {
-    return new Block(Date.now(), [], '0');
-  }
-
-  getLatestBlock() {
-    return this.chain[this.chain.length - 1];
-  }
-
-  addValidator(address: string, stake: number): boolean {
-    if (stake >= this.minimumStake) {
-      const penaltyEndTime = this.penalizedValidators.get(address);
-      if (penaltyEndTime && penaltyEndTime > Date.now()) {
-        return false;
-      }
-
-      this.validators.set(address, stake);
-      this.lastValidatorTimestamps.set(address, 0);
-      return true;
-    }
-    return false;
-  }
-
-  selectValidator(): string | null {
-    const currentTime = Date.now();
-    const validValidators = Array.from(this.validators.entries()).filter(([address, _]) => {
-      const penaltyEndTime = this.penalizedValidators.get(address);
-      const lastValidationTime = this.lastValidatorTimestamps.get(address);
-
-      return (!penaltyEndTime || penaltyEndTime < currentTime) &&
-             (!lastValidationTime || (currentTime - lastValidationTime) > 300000);
-    });
-
-    if (validValidators.length === 0) return null;
-
-    const totalStake = validValidators.reduce((sum, [_, stake]) => sum + stake, 0);
-    let randomPoint = Math.random() * totalStake;
-
-    for (const [address, stake] of validValidators) {
-      randomPoint -= stake;
-      if (randomPoint <= 0) {
-        return address;
-      }
-    }
-
-    return validValidators[0][0];
-  }
-
-  async minePendingTransactions(validatorAddress: string) {
-    if (!this.validators.has(validatorAddress)) {
-      throw new Error('Not a valid validator');
-    }
-
-    const blockHeight = this.chain.length;
-    const validatorBlocks = this.doubleSigningProofs.get(validatorAddress) || [];
-    if (validatorBlocks.some(b => b.height === blockHeight)) {
-      this.slashValidator(validatorAddress);
-      throw new Error('Double signing detected');
-    }
-
-    const block = new Block(
-      Date.now(),
-      this.pendingTransactions,
-      this.getLatestBlock().hash
-    );
-
-    block.validator = validatorAddress;
-    block.height = blockHeight;
-    block.hash = block.calculateHash();
-
-    this.lastValidatorTimestamps.set(validatorAddress, Date.now());
-
-    const validatorProofs = this.doubleSigningProofs.get(validatorAddress);
-    if (validatorProofs) {
-      validatorProofs.push({
-        height: blockHeight,
-        hash: block.hash
-      });
-    } else {
-      this.doubleSigningProofs.set(validatorAddress, [{
-        height: blockHeight,
-        hash: block.hash
-      }]);
-    }
-
-    this.chain.push(block);
-
-    this.pendingTransactions = [
-      new Transaction("", validatorAddress, this.calculateValidatorReward(validatorAddress), 'REWARD')
-    ];
-  }
-
-  slashValidator(address: string) {
-    const stake = this.validators.get(address);
-    if (stake !== undefined) {
-      const penalty = stake * this.slashingPenalty;
-      this.validators.set(address, stake - penalty);
-      this.penalizedValidators.set(address, Date.now() + 86400000); // Penalización de 24 horas
-    }
-  }
-
-  calculateValidatorReward(validatorAddress: string): number {
-    const stake = this.validators.get(validatorAddress);
-    if (stake !== undefined) {
-      return 1 + (stake / this.minimumStake) * 0.5;
-    }
-    console.warn(`El validador ${validatorAddress} no tiene un stake definido.`);
-    return 0;
-  }
-
-  async executeSmartContract(transaction: Transaction) {
-    if (transaction.contractData) {
-      const contractData = transaction.contractData;
-
-      switch (transaction.type) {
-        case 'ROYALTY_PAYMENT':
-          await this.processRoyaltyPayment(contractData);
-          break;
-        case 'CONTENT_LICENSE':
-          await this.processContentLicense(contractData);
-          break;
-        case 'NFT_MINT':
-          await this.processNFTMint(contractData);
-          break;
-      }
-    }
-  }
-
-  async processRoyaltyPayment(contractData: ContractData) {
-    if (contractData.creator && contractData.amount) {
-      const royaltyTx = new Transaction("", contractData.creator, contractData.amount, 'ROYALTY');
-      this.pendingTransactions.push(royaltyTx);
-    }
-  }
-
-  async processContentLicense(contractData: ContractData) {
-    if (contractData.contentId && contractData.licensee && contractData.duration) {
-      const licenseTx = new Transaction(
-        "", 
-        contractData.licensee,
-        0,
-        'LICENSE',
-        {
-          contentId: contractData.contentId,
-          expirationDate: Date.now() + contractData.duration
-        }
-      );
-      this.pendingTransactions.push(licenseTx);
-    }
-  }
-
-  async processNFTMint(contractData: ContractData) {
-    if (contractData.contentId && contractData.owner && contractData.metadata) {
-      const nftTx = new Transaction(
-        "", 
-        contractData.owner,
-        0,
-        'NFT_MINT',
-        {
-          contentId: contractData.contentId,
-          tokenId: calculateHash(contractData.metadata + Date.now()),
-          metadata: contractData.metadata
-        }
-      );
-      this.pendingTransactions.push(nftTx);
-    }
-  }
-
-  isChainValid(): boolean {
-    for (let i = 1; i < this.chain.length; i++) {
-      const currentBlock = this.chain[i];
-      const previousBlock = this.chain[i - 1];
-
-      if (currentBlock.hash !== currentBlock.calculateHash()) {
-        return false;
-      }
-
-      if (currentBlock.previousHash !== previousBlock.hash) {
-        return false;
-      }
-
-      if (!currentBlock.transactions.every(tx => tx.isValid())) {
-        return false;
-      }
-
-      if (!this.validators.has(currentBlock.validator)) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  addTransaction(transaction: Transaction): void {
-    if (transaction.isValid()) {
-      this.pendingTransactions.push(transaction);
-    } else {
-      console.error('Transacción inválida');
-    }
-  }
-}
-
+// Clase Block
 class Block {
-  timestamp: number;
-  transactions: Transaction[];
-  previousHash: string;
-  hash: string;
-  height: number;
-  validator: string;
+    public hash: string;
 
-  constructor(timestamp: number, transactions: Transaction[], previousHash: string) {
-    this.timestamp = timestamp;
-    this.transactions = transactions;
-    this.previousHash = previousHash;
-    this.hash = this.calculateHash();
-    this.height = 0; // Se asignará el valor adecuado cuando se mine
-    this.validator = ''; // Se asignará el validador cuando se mine
-  }
+    constructor(
+        public timestamp: Date,
+        public transactions: Transaction[],
+        public previousHash: string = '',
+        public nonce: number = 0
+    ) {
+        this.hash = this.calculateHash();
+    }
 
-  calculateHash(): string {
-    return calculateHash(this.timestamp + JSON.stringify(this.transactions) + this.previousHash);
-  }
+    calculateHash(): string {
+        return crypto
+            .createHash('sha256')
+            .update(this.previousHash + this.timestamp + JSON.stringify(this.transactions) + this.nonce)
+            .digest('hex');
+    }
+
+    mineBlock(difficulty: number): void {
+        while (!this.hash.startsWith('0'.repeat(difficulty))) {
+            this.nonce++;
+            this.hash = this.calculateHash();
+        }
+        console.log(`Bloque minado: ${this.hash}`);
+    }
 }
 
-class Transaction {
-  sender: string;
-  recipient: string;
-  amount: number;
-  type: string;
-  contractData?: ContractData;
+// Clase Blockchain
+class Blockchain {
+    getAccount(): string | PromiseLike<string | null> | null {
+      throw new Error('Method not implemented.');
+    }
+    on(arg0: string, handleDisconnect: () => void) {
+      throw new Error('Method not implemented.');
+    }
+    off(arg0: string, handleDisconnect: () => void) {
+      throw new Error('Method not implemented.');
+    }
+    private chain: Block[] = [this.createGenesisBlock()];
+  nftPallet: any;
 
-  constructor(sender: string, recipient: string, amount: number, type: string, contractData?: ContractData) {
-    this.sender = sender;
-    this.recipient = recipient;
-    this.amount = amount;
-    this.type = type;
-    this.contractData = contractData;
-  }
+    private createGenesisBlock(): Block {
+        return new Block(new Date(), [], '0');
+    }
 
-  isValid(): boolean {
-    // Lógica de validación de transacción (ej., comprobación de firma)
-    return true; // En este caso es solo un placeholder
-  }
+    getLatestBlock(): Block {
+        return this.chain[this.chain.length - 1];
+    }
+
+    addBlock(newBlock: Block, difficulty: number): void {
+        newBlock.previousHash = this.getLatestBlock().hash;
+        newBlock.mineBlock(difficulty);
+        this.chain.push(newBlock);
+    }
+
+    isChainValid(): boolean {
+        for (let i = 1; i < this.chain.length; i++) {
+            const currentBlock = this.chain[i];
+            const previousBlock = this.chain[i - 1];
+
+            if (currentBlock.hash !== currentBlock.calculateHash()) {
+                console.error('Hash del bloque actual no coincide.');
+                return false;
+            }
+
+            if (currentBlock.previousHash !== previousBlock.hash) {
+                console.error('Hash del bloque anterior no coincide.');
+                return false;
+            }
+
+            for (const transaction of currentBlock.transactions) {
+                if (!transaction.isValid()) {
+                    console.error('Transacción inválida detectada en el bloque.');
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    getAccountBalance(address: string): number {
+        let balance = 0;
+        for (const block of this.chain) {
+            for (const transaction of block.transactions) {
+                if (transaction.sender === address) {
+                    balance -= transaction.amount;
+                }
+                if (transaction.recipient === address) {
+                    balance += transaction.amount;
+                }
+            }
+        }
+        return balance;
+    }
+
+    async connect(): Promise<void> {
+        console.log('Connecting to the blockchain...');
+    }
+
+    getAccounts(): string[] {
+        const accounts: Set<string> = new Set();
+        for (const block of this.chain) {
+            for (const transaction of block.transactions) {
+                accounts.add(transaction.sender);
+                accounts.add(transaction.recipient);
+            }
+        }
+        return Array.from(accounts);
+    }
+
+    addTransaction(transaction: Transaction): void {
+        if (!transaction.isValid()) {
+            throw new Error('Invalid Transaction');
+        }
+        const latestBlock = this.getLatestBlock();
+        latestBlock.transactions.push(transaction);
+    }
 }
 
-function calculateHash(data: string): string {
-  // Función simple para simular el cálculo de un hash
-  let hash = 0;
-  for (let i = 0; i < data.length; i++) {
-    const char = data.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash |= 0; // Aseguramos que el hash sea un número de 32 bits
-  }
-  return hash.toString(16);
+// Clase Validator
+class Validator {
+    constructor(public address: string, public stake: number, public isActive: boolean = true) {}
 }
 
-// Instanciando y utilizando la clase Blockchain para operaciones
+// Clase ProofOfStake
+class ProofOfStake {
+    private validators: Validator[] = [];
+
+    addValidator(address: string, stake: number): void {
+        if (stake <= 0) {
+            throw new Error('El stake debe ser mayor a cero.');
+        }
+        this.validators.push(new Validator(address, stake));
+    }
+
+    selectValidator(): Validator {
+        const totalStake = this.validators.reduce((sum, v) => sum + (v.isActive ? v.stake : 0), 0);
+        const random = Math.random() * totalStake;
+
+        let cumulative = 0;
+        for (const validator of this.validators) {
+            if (!validator.isActive) continue;
+            cumulative += validator.stake;
+            if (random <= cumulative) {
+                return validator;
+            }
+        }
+
+        throw new Error('No se pudo seleccionar un validador.');
+    }
+
+    slashValidator(address: string): void {
+        const validator = this.validators.find(v => v.address === address);
+        if (validator) {
+            validator.isActive = false;
+            console.log(`Validador ${address} penalizado.`);
+        } else {
+            console.error('No se encontró al validador para penalizar.');
+        }
+    }
+}
+
+// Instanciación de la clase Blockchain
 const blockchain = new Blockchain();
 
-// Agregar un validador con una cantidad de stake (por ejemplo, 1000)
-blockchain.addValidator("validator1", 1000);
+// Llamar al método connect
+(async () => {
+    await blockchain.connect();
+    console.log('Blockchain conectada.');
+})();
 
-// Agregar transacciones para el procesamiento
-blockchain.addTransaction(new Transaction("sender", "recipient", 100, "ROYALTY_PAYMENT"));
-
-// Simular la minería de transacciones
-blockchain.minePendingTransactions("validator1");
-
-// Verificar si la cadena es válida
-console.log("¿Es válida la cadena?", blockchain.isChainValid());
-
-// Mostrar el bloque más reciente
-console.log("Último bloque:", blockchain.getLatestBlock());
+// Exportación de las clases principales
+export { Blockchain, Transaction, Block, ProofOfStake };

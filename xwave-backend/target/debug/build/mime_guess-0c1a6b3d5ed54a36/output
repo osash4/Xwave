@@ -1,0 +1,1 @@
+cargo:rustc-env=MIME_TYPES_GENERATED_PATH=/Users/yare/xwave/xwave-backend/target/debug/build/mime_guess-0c1a6b3d5ed54a36/out/mime_types_generated.rs

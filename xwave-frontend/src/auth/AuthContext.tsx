@@ -1,12 +1,11 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-// Definimos la interfaz para el contexto con displayName agregado
 interface User {
   photoURL?: string;
   uid: string;
   email: string;
-  displayName?: string;  // Agregamos displayName como propiedad opcional
+  displayName?: string;
 }
 
 interface AuthContextType {
@@ -16,36 +15,36 @@ interface AuthContextType {
   signOut: () => Promise<void>;
 }
 
-// Creación del contexto
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Proveedor de autenticación
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);  // Usamos el tipo User actualizado
+  const [user, setUser] = useState<User | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Verificar si el usuario está en el localStorage
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
-      setUser(JSON.parse(storedUser)); // Cargar el usuario del localStorage
+      setUser(JSON.parse(storedUser));
     }
   }, []);
 
-  // Método para iniciar sesión (usando credenciales simples para desarrollo)
+  useEffect(() => {
+    if (user && window.location.pathname !== '/profile') {
+      navigate('/profile');
+    }
+  }, [user, navigate]);
+
   const signIn = async (email: string, password: string) => {
     try {
       if (email === 'test@example.com' && password === 'password123') {
-        // Simulamos un login exitoso, añadiendo displayName
-        const newUser: User = { 
-          uid: '1234', 
-          email: 'test@example.com', 
-          photoURL: 'https://example.com/photo.jpg', 
-          displayName: 'John Doe'  // Agregamos displayName al usuario
+        const newUser: User = {
+          uid: '1234',
+          email: 'test@example.com',
+          photoURL: 'https://example.com/photo.jpg',
+          displayName: 'John Doe',
         };
         setUser(newUser);
-        localStorage.setItem('user', JSON.stringify(newUser)); // Guardar en el localStorage
-        navigate('/profile'); // Redirigimos al perfil
+        localStorage.setItem('user', JSON.stringify(newUser));
       } else {
         throw new Error('Invalid credentials');
       }
@@ -55,15 +54,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  // Método para cerrar sesión
   const signOut = async () => {
-    try {
-      setUser(null); // Simulamos logout
-      localStorage.removeItem('user'); // Limpiamos el localStorage
-      navigate('/exploreNow'); // Redirigimos a 'exploreNow' después de hacer logout
-    } catch (error) {
-      console.error("Error al cerrar sesión: ", error);
-    }
+    setUser(null);
+    localStorage.removeItem('user');
+    navigate('/exploreNow');
   };
 
   return (
@@ -73,7 +67,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   );
 };
 
-// Hook personalizado para acceder al contexto de autenticación
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (context === undefined) {

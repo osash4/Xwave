@@ -19,7 +19,7 @@ export const Wallet: React.FC = () => {
 
     try {
       // Lógica para conectar a la blockchain
-      // Aquí realizarás una solicitud al backend para obtener la dirección y saldo
+      const address = await obtenerDireccionDesdeWallet();
 
       const response = await fetch('http://localhost:3001/balance/0x1234567890abcdef');  // Reemplaza con la dirección de tu API
       if (!response.ok) {
@@ -30,19 +30,26 @@ export const Wallet: React.FC = () => {
 
       setWalletData({
         balance: data.balance,
-        address: '0x1234567890abcdef',  // Aquí se debe obtener dinámicamente la dirección
+        address: address,  // Aquí se debe obtener dinámicamente la dirección
       });
       setWalletConnected(true);
     } catch (error) {
-      setError('Hubo un problema al conectar la billetera.');
+      setError('Hubo un problema al conectar la billetera. Por favor, inténtalo de nuevo.');
     } finally {
       setLoading(false);
     }
   };
 
   const handleDisconnectWallet = () => {
-    setWalletData(null);
-    setWalletConnected(false);
+    const confirmDisconnect = window.confirm('¿Estás seguro de que deseas desconectar la billetera?');
+    if (confirmDisconnect) {
+      setWalletData(null);
+      setWalletConnected(false);
+    }
+  };
+
+  const formatBalance = (balance: number) => {
+    return `${balance.toLocaleString()} XW`;
   };
 
   return (
@@ -50,11 +57,11 @@ export const Wallet: React.FC = () => {
       {/* Botón para conectar la billetera */}
       {!walletConnected ? (
         <button onClick={handleConnectWallet} className="btn-connect-wallet">
-          Connect Wallet
+          <WalletIcon size={16} /> Connect Wallet
         </button>
       ) : (
         <button onClick={handleDisconnectWallet} className="btn-disconnect-wallet">
-          Disconnect Wallet
+          <WalletIcon size={16} /> Disconnect Wallet
         </button>
       )}
 
@@ -69,10 +76,17 @@ export const Wallet: React.FC = () => {
           <div>
             <h2 className="text-lg font-semibold">Wallet Connected</h2>
             <div>{`Address: ${walletData.address}`}</div>
-            <div>{`Balance: ${walletData.balance} XW`}</div>
+            <div>{`Balance: ${formatBalance(walletData.balance)} `}</div>
           </div>
         </div>
       )}
     </div>
   );
 };
+
+async function obtenerDireccionDesdeWallet(): Promise<string> {
+  // Implementa la lógica para obtener la dirección desde la billetera
+  // Por ejemplo, podrías usar una librería como web3.js o ethers.js para conectarte a la billetera
+  // Aquí hay un ejemplo ficticio:
+  return '0x1234567890abcdef1234567890abcdef12345678';
+}

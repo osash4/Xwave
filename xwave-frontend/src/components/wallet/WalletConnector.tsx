@@ -29,7 +29,7 @@ export function WalletConnector() {
       )}
       
       {/* Mostrar el balance de la billetera cuando la cuenta esté conectada */}
-      {account && <WalletBalance walletAddress={account} />} 
+      {account && <WalletBalance walletAddress={account} balance={0} />} 
 
       {error && (
         <span className="text-sm text-red-600">

@@ -1,11 +1,5 @@
-import { ReactElement, JSXElementConstructor, ReactNode } from "react";
 
-// Defining the type for an NFT
-interface NFT {
-  id: string | null | undefined;
-  imageUrl: string;  // Image URL should be a string
-  name: string | number | boolean | ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined;
-}
+import { NFT} from '../../types/types'
 
 // Definiendo el tipo para la propiedad `nfts` y la función `onTransfer`
 interface NFTGalleryProps {
@@ -38,4 +32,3 @@ export function NFTGallery({ nfts, onTransfer }: NFTGalleryProps) {
     </div>
   );
 }
-

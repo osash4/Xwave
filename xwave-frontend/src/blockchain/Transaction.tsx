@@ -9,12 +9,12 @@ interface ContractData {
 }
 
 export class Transaction {
-  sender: string ;   // Cambié 'fromAddress' a 'sender'
-  recipient: string ; // Cambié 'toAddress' a 'recipient'
+  sender: string;
+  recipient: string;
   amount: number;
   timestamp: number;
   type: string;
-  contractData: ContractData | undefined; // 'contractData' sigue siendo opcional
+  contractData: ContractData | undefined;
   signature: string;
   nonce: number;
   contractType: any; // Si puedes, reemplaza 'any' por un tipo más específico

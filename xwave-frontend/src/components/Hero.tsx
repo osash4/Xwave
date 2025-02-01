@@ -1,13 +1,13 @@
-import * as reactRouterDom from 'react-router-dom';
-import { Wallet as WalletIcon } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useBlockchain } from '../../src/contexts/BlockchainContext';  // Suponiendo que ya tienes este contexto
 import { useNavigate } from 'react-router-dom';  // Para redirigir al usuario
+import { Wallet as WalletIcon } from 'lucide-react';
+import { Link } from 'react-router-dom';  // Corregido para usar react-router-dom
 
 export const Hero = () => {
   const [isConnecting, setIsConnecting] = useState(false);
-  const { setAccount, setIsAuthenticated, isAuthenticated, account } = useBlockchain();  // Obtener setAccount, setIsAuthenticated y account del contexto
-  const navigate = useNavigate();  // Para redirigir al usuario
+  const { setAccount, setIsAuthenticated, isAuthenticated, account } = useBlockchain();
+  const navigate = useNavigate();
 
   // Verificar si la cuenta ya está conectada al cargar el componente
   useEffect(() => {
@@ -19,25 +19,27 @@ export const Hero = () => {
   const handleConnectWallet = async () => {
     setIsConnecting(true);  // Mostrar estado de conexión
     try {
-      const { web3Accounts, web3Enable } = await import('@polkadot/extension-dapp');
-  
-      // Habilitar la billetera (si no está habilitada aún)
-      const allAccounts = await web3Accounts();  // Obtener todas las cuentas disponibles
-      if (allAccounts.length === 0) {
-        alert('No se encontraron cuentas. Asegúrate de que tu billetera esté configurada.');
-        return;
+      // Verificar si la billetera personalizada está disponible en window
+      if (window.XWaveAPI) {
+        // Obtener la cuenta de la billetera personalizada
+        const accounts = await window.XWaveAPI.getAccounts();  // Método de tu billetera personalizada
+        if (accounts.length === 0) {
+          alert('No se encontraron cuentas. Asegúrate de que tu billetera esté configurada.');
+          return;
+        }
+
+        const selectedAccount = accounts[0];  // Seleccionar la primera cuenta disponible
+        setAccount(selectedAccount);  // Guardar la cuenta seleccionada en el estado global
+
+        // Marcar al usuario como autenticado
+        setIsAuthenticated(true);
+
+        // Redirigir al dashboard o página principal
+        navigate('/dashboard');
+        alert('¡Billetera conectada exitosamente!');
+      } else {
+        alert('Por favor, instala la billetera personalizada de nuestra red.');
       }
-
-      const selectedAccount = allAccounts[0];  // Seleccionar la primera cuenta disponible
-      setAccount(selectedAccount.address);  // Guardar la cuenta seleccionada en el estado global
-
-      // Marcar al usuario como autenticado
-      setIsAuthenticated(true);  // Establece el estado de autenticación
-
-      // Redirigir a la página principal o dashboard
-      navigate('/dashboard');  // Cambia '/dashboard' por la ruta correspondiente en tu app
-
-      alert('¡Billetera conectada exitosamente!');
     } catch (error) {
       console.error('Error al conectar la billetera', error);
       alert('Hubo un problema al conectar la billetera.');
@@ -69,12 +71,12 @@ export const Hero = () => {
             Your new world of music, video, and gaming powered by blockchain.
           </p>
           <div className="space-x-4">
-            <reactRouterDom.Link
+            <Link
               to="/explore"
               className="inline-block px-8 py-3 bg-[#2596be] text-white font-bold rounded-md hover:bg-[#3ecadd] transition-colors"
             >
               Explore Now
-            </reactRouterDom.Link>
+            </Link>
             <a
               href="#signup"
               className="inline-block px-8 py-3 bg-[#407188] text-white font-bold rounded-md hover:bg-[#3ecadd] transition-colors"

@@ -1,101 +1,135 @@
 import React, { createContext, useEffect, useState, useCallback, useContext } from 'react';
 
-// Definimos las propiedades que tendrá el contexto de WebSocket
 interface WebSocketContextProps {
   ws: WebSocket | null;
   isConnected: boolean;
   sendMessage: (message: string) => void;
-  messages: string[]; // Agregamos la propiedad messages para almacenar los mensajes recibidos
-  connectionStatus: string; // Agregamos la propiedad connectionStatus
+  messages: string[];
+  connectionStatus: string;
+  loading: boolean;
+  error: string | null;
 }
 
-// Creamos el contexto con valores por defecto
 export const WebSocketContext = createContext<WebSocketContextProps>({
   ws: null,
   isConnected: false,
   sendMessage: () => {},
-  messages: [], // Lista de mensajes por defecto vacía
-  connectionStatus: 'Disconnected', // Estado de la conexión por defecto
+  messages: [],
+  connectionStatus: 'Disconnected',
+  loading: true,
+  error: null,
 });
 
-// Definimos las props para el WebSocketProvider, que envolverá a los componentes hijos
 interface WebSocketProviderProps {
   children: React.ReactNode;
 }
 
-// El WebSocketProvider manejará la conexión WebSocket y proporcionará el contexto a los componentes
 export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }) => {
   const [ws, setWs] = useState<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  const [messages, setMessages] = useState<string[]>([]); // Estado para los mensajes recibidos
-  const [connectionStatus, setConnectionStatus] = useState('Disconnected'); // Estado para el estado de la conexión
+  const [messages, setMessages] = useState<string[]>([]);
+  const [connectionStatus, setConnectionStatus] = useState('Disconnected');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [reconnectAttempts, setReconnectAttempts] = useState(0);
 
-  // Función para conectar el WebSocket
+  // Conectar al WebSocket
   const connectWebSocket = useCallback(() => {
-    const socket = new WebSocket(process.env.REACT_APP_WEBSOCKET_URL || 'ws://127.0.0.1:8083/rpc');
+    if (ws && ws.readyState !== WebSocket.CLOSED && ws.readyState !== WebSocket.CLOSING) {
+      console.warn('El WebSocket ya está conectado o en proceso de conexión.');
+      return; // Si ya está conectado o en proceso de conexión, no hacer nada
+    }
+
+    const socket = new WebSocket(process.env.REACT_APP_WEBSOCKET_URL || 'ws://127.0.0.1:8083/ws/');
 
     socket.onopen = () => {
-      console.log('Conectado al WebSocket');
+      console.log('WebSocket conectado');
       setIsConnected(true);
       setConnectionStatus('Connected');
+      setLoading(false);
+      setError(null);
+      setReconnectAttempts(0);
     };
 
     socket.onmessage = (event) => {
       try {
-        const parsedData = JSON.parse(event.data);
-        console.log('Mensaje recibido:', parsedData);
-        setMessages((prevMessages) => [...prevMessages, parsedData]);
-      } catch (error) {
-        console.error('Error al parsear mensaje:', error);
+        const parsedMessage = JSON.parse(event.data);
+        setMessages((prev) => [...prev, parsedMessage]);
+      } catch (e) {
+        console.error('Error al procesar el mensaje:', e);
       }
     };
 
-    socket.onerror = (error) => {
-      console.error('Error WebSocket:', error);
-      // Reintentar la conexión cada 5 segundos en caso de error
-      setTimeout(() => connectWebSocket(), 5000);
+    socket.onerror = () => {
+      console.error('Error en la conexión WebSocket.');
+      setError('Error en la conexión WebSocket.');
     };
 
     socket.onclose = (event) => {
-      console.log('Conexión WebSocket cerrada', event.reason);
+      console.log(`WebSocket cerrado: ${event.reason || 'Sin motivo especificado'}`);
       setIsConnected(false);
       setConnectionStatus('Disconnected');
-      // Reintentar la conexión cada 5 segundos si se cierra
-      setTimeout(() => connectWebSocket(), 5000);
+      setLoading(false);
+
+      if (event.code !== 1000) {
+        setError('La conexión WebSocket fue cerrada inesperadamente.');
+        setReconnectAttempts((prev) => prev + 1);
+        
+        // Limitación de los intentos de reconexión
+        if (reconnectAttempts < 5) {
+          setTimeout(() => connectWebSocket(), Math.min(5000, 1000 * reconnectAttempts)); // Expone el intento
+        } else {
+          setError('No se pudo reconectar después de varios intentos.');
+        }
+      }
     };
 
     setWs(socket);
-  }, []);
+  }, [ws, reconnectAttempts]);  // Dependemos de ws para controlar el estado de la conexión
 
-  // Usamos useEffect para conectarnos al WebSocket al montar el componente
+  // Conectar cuando el componente se monta y limpiar la conexión cuando se desmonta
   useEffect(() => {
-    connectWebSocket();
-    
-    // Limpiamos la conexión cuando el componente se desmonta
+    if (!ws) {
+      connectWebSocket();
+    }
     return () => {
       if (ws) {
-        ws.close();
+        console.log('Cerrando WebSocket...');
+        ws.close(1000, 'Componente desmontado');
       }
     };
-  }, [connectWebSocket, ws]);
+  }, [ws, connectWebSocket]);  // Dependemos de ws y connectWebSocket para controlar los efectos
 
-  // Función para enviar un mensaje a través del WebSocket
-  const sendMessage = (message: string) => {
-    if (ws?.readyState === WebSocket.OPEN) {
-      ws.send(message);
-    } else {
-      console.error('WebSocket no está conectado. Mensaje no enviado:', message);
-    }
-  };
+  // Función para enviar mensajes a través del WebSocket
+  const sendMessage = useCallback(
+    (message: string) => {
+      if (ws?.readyState === WebSocket.OPEN) {
+        ws.send(message);
+        console.log('Mensaje enviado:', message);
+      } else {
+        console.warn('No se puede enviar el mensaje, WebSocket no conectado.');
+      }
+    },
+    [ws]
+  );
 
   return (
-    <WebSocketContext.Provider value={{ ws, isConnected, sendMessage, messages, connectionStatus }}>
+    <WebSocketContext.Provider
+      value={{
+        ws,
+        isConnected,
+        sendMessage,
+        messages,
+        connectionStatus,
+        loading,
+        error,
+      }}
+    >
       {children}
     </WebSocketContext.Provider>
   );
 };
 
-// Hook personalizado para acceder al contexto WebSocket
 export const useWebSocket = () => {
   const context = useContext(WebSocketContext);
   if (!context) {

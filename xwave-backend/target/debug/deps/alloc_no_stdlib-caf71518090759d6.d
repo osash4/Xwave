@@ -1,0 +1,10 @@
+/Users/yare/xwave/xwave-backend/target/debug/deps/liballoc_no_stdlib-caf71518090759d6.rmeta: /Users/yare/.cargo/registry/src/index.crates.io-6f17d22bba15001f/alloc-no-stdlib-2.0.4/src/lib.rs /Users/yare/.cargo/registry/src/index.crates.io-6f17d22bba15001f/alloc-no-stdlib-2.0.4/src/allocated_memory/mod.rs /Users/yare/.cargo/registry/src/index.crates.io-6f17d22bba15001f/alloc-no-stdlib-2.0.4/src/allocated_memory/index_macro.rs /Users/yare/.cargo/registry/src/index.crates.io-6f17d22bba15001f/alloc-no-stdlib-2.0.4/src/stack_allocator.rs /Users/yare/.cargo/registry/src/index.crates.io-6f17d22bba15001f/alloc-no-stdlib-2.0.4/src/allocated_stack_memory.rs /Users/yare/.cargo/registry/src/index.crates.io-6f17d22bba15001f/alloc-no-stdlib-2.0.4/src/init.rs
+
+/Users/yare/xwave/xwave-backend/target/debug/deps/alloc_no_stdlib-caf71518090759d6.d: /Users/yare/.cargo/registry/src/index.crates.io-6f17d22bba15001f/alloc-no-stdlib-2.0.4/src/lib.rs /Users/yare/.cargo/registry/src/index.crates.io-6f17d22bba15001f/alloc-no-stdlib-2.0.4/src/allocated_memory/mod.rs /Users/yare/.cargo/registry/src/index.crates.io-6f17d22bba15001f/alloc-no-stdlib-2.0.4/src/allocated_memory/index_macro.rs /Users/yare/.cargo/registry/src/index.crates.io-6f17d22bba15001f/alloc-no-stdlib-2.0.4/src/stack_allocator.rs /Users/yare/.cargo/registry/src/index.crates.io-6f17d22bba15001f/alloc-no-stdlib-2.0.4/src/allocated_stack_memory.rs /Users/yare/.cargo/registry/src/index.crates.io-6f17d22bba15001f/alloc-no-stdlib-2.0.4/src/init.rs
+
+/Users/yare/.cargo/registry/src/index.crates.io-6f17d22bba15001f/alloc-no-stdlib-2.0.4/src/lib.rs:
+/Users/yare/.cargo/registry/src/index.crates.io-6f17d22bba15001f/alloc-no-stdlib-2.0.4/src/allocated_memory/mod.rs:
+/Users/yare/.cargo/registry/src/index.crates.io-6f17d22bba15001f/alloc-no-stdlib-2.0.4/src/allocated_memory/index_macro.rs:
+/Users/yare/.cargo/registry/src/index.crates.io-6f17d22bba15001f/alloc-no-stdlib-2.0.4/src/stack_allocator.rs:
+/Users/yare/.cargo/registry/src/index.crates.io-6f17d22bba15001f/alloc-no-stdlib-2.0.4/src/allocated_stack_memory.rs:
+/Users/yare/.cargo/registry/src/index.crates.io-6f17d22bba15001f/alloc-no-stdlib-2.0.4/src/init.rs:

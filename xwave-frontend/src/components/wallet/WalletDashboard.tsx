@@ -6,12 +6,9 @@ import { TransactionHistory } from './TransactionHistory';
 import { NFTTransferModal } from '../nft/NFTTransferModal';
 import BottomNavBar from '../BottomNavBar/BottomNavBar';
 import { FilterPanel } from '../common/FilterPanel';
-import { Spinner } from '../common/Spinner'; // Importar Spinner
+import { Spinner } from '../common/Spinner';
+import { format, isThisWeek, isThisMonth } from 'date-fns';
 
-
-
-
-// Definir los tipos de las funciones de los pallets
 type BalancesPallet = {
   getBalance: (account: string) => Promise<number>;
   getTransactionHistory: (account: string) => Promise<Transaction[]>;
@@ -26,12 +23,13 @@ type Transaction = {
   hash: string;
   type: string;
   amount: number;
+  timestamp: string;
 };
 
 type NFT = {
   id: string | null | undefined;
-  imageUrl: string;  // Image URL should be a string
-  name: string | number | boolean | React.ReactNode | null | undefined;
+  imageUrl: string;
+  name: string | null | undefined;
 };
 
 type FilterOption = {
@@ -41,8 +39,13 @@ type FilterOption = {
 };
 
 export function WalletDashboard() {
-  const { account, balancesPallet, nftPallet } = useBlockchain();
-  const [, setBalance] = useState(0);
+  const { account, balancesPallet, nftPallet } = useBlockchain() as {
+    account: string | null;
+    balancesPallet: BalancesPallet;
+    nftPallet: NFTPallet;
+  };
+
+  const [balance, setBalance] = useState<number>(0);
   const [nfts, setNfts] = useState<NFT[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [selectedNFT, setSelectedNFT] = useState<NFT | null>(null);
@@ -53,9 +56,73 @@ export function WalletDashboard() {
     amount: 'all',
   });
   const [searchQuery, setSearchQuery] = useState('');
-  const [loading, setLoading] = useState(true);  // Indicador de carga
-  const [error, setError] = useState<string | null>(null);      // Para manejar errores
-  const [successMessage, setSuccessMessage] = useState<string | null>(null); // Mensaje de éxito
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!account) {
+      setError('No se ha detectado una billetera conectada.');
+     return;
+    }
+
+    const websocketUrl = 'ws://127.0.0.1:8083/ws/'; // URL del WebSocket
+    const socket = new WebSocket(websocketUrl);
+
+    socket.onopen = () => {
+      console.log('Conexión WebSocket abierta');
+      socket.send(JSON.stringify({ type: 'subscribe', account }));
+    };
+
+    socket.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type === 'balanceUpdate') {
+        setBalance(data.newBalance);
+      } else if (data.type === 'nftUpdate') {
+        setNfts(data.newNFTs);
+      }
+    };
+
+    socket.onerror = (error) => {
+      console.error('Error en WebSocket:', error);
+      setError('Error al conectarse al servidor en tiempo real.');
+    };
+
+    socket.onclose = () => {
+      console.log('Conexión WebSocket cerrada.');
+    };
+
+    return () => {
+      socket.close();
+    };
+  }, [account]);
+
+  async function loadWalletData() {
+    setLoading(true);
+    setError(null);
+    setSuccessMessage(null);
+
+    try {
+      if (!balancesPallet || !nftPallet) {
+        throw new Error('Los pallets de blockchain no están disponibles.');
+      }
+
+      const [userBalance, userNFTs, txHistory] = await Promise.all([
+        balancesPallet.getBalance(account!),
+        nftPallet.getTokensByOwner(account!),
+        balancesPallet.getTransactionHistory(account!),
+      ]);
+
+      setBalance(userBalance);
+      setNfts(userNFTs);
+      setTransactions(txHistory);
+    } catch (err: any) {
+      setError(err.message || 'Error al cargar los datos de la billetera.');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
     if (account) {
@@ -63,50 +130,38 @@ export function WalletDashboard() {
     }
   }, [account]);
 
-  async function loadWalletData() {
-    setLoading(true);
-    setError(null); // Resetear el error antes de hacer la llamada
-    setSuccessMessage(null); // Resetear mensaje de éxito
-    try {
-      // Asegurarse de que las funciones están correctamente definidas
-      const userBalance = await balancesPallet.getBalance(account);
-      const userNFTs = await nftPallet.getTokensByOwner(account);
-      const txHistory = await balancesPallet.getTransactionHistory(account);
-
-      setBalance(userBalance);
-      setNfts(userNFTs);
-      setTransactions(txHistory);
-    } catch (err) {
-      setError('Error al cargar los datos de la billetera');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  // Filtrado de transacciones con `useMemo` para evitar recalculos innecesarios
   const filteredTransactions = useMemo(() => {
-    return transactions.filter(tx => {
-      const matchesSearch = tx.hash.includes(searchQuery) || 
-                            tx.type.includes(searchQuery);
+    return transactions.filter((tx) => {
+      const matchesSearch = tx.hash.includes(searchQuery) || tx.type.includes(searchQuery);
       const matchesType = filters.type === 'all' || tx.type === filters.type;
-      const matchesAmount = filters.amount === 'all' || 
-                            (filters.amount === 'high' ? tx.amount > 1000 : tx.amount <= 1000);
+      const matchesAmount =
+        filters.amount === 'all' ||
+        (filters.amount === 'high' ? tx.amount > 1000 : tx.amount <= 1000);
+      const matchesDate =
+        filters.dateRange === 'all' ||
+        (filters.dateRange === 'today' && isToday(tx.timestamp)) ||
+        (filters.dateRange === 'week' && isThisWeek(new Date(tx.timestamp))) ||
+        (filters.dateRange === 'month' && isThisMonth(new Date(tx.timestamp)));
 
-      return matchesSearch && matchesType && matchesAmount;
+      return matchesSearch && matchesType && matchesAmount && matchesDate;
     });
   }, [transactions, searchQuery, filters]);
 
+  const isToday = (timestamp: string) => {
+    const date = new Date(timestamp);
+    return format(date, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
+  };
+
   const handleNFTTransfer = async (toAddress: string) => {
-    if (selectedNFT) {
+    if (selectedNFT && selectedNFT.id) {
       try {
-        await nftPallet.transferNFT(account, toAddress, selectedNFT.id);
+        await nftPallet.transferNFT(account!, toAddress, selectedNFT.id);
         await loadWalletData();
         setIsTransferModalOpen(false);
         setSelectedNFT(null);
         setSuccessMessage('NFT transferido correctamente');
-      } catch (err) {
-        setError('Error al transferir el NFT');
+      } catch (err: any) {
+        setError('Error al transferir el NFT.');
         console.error(err);
       }
     }
@@ -115,62 +170,42 @@ export function WalletDashboard() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <h1 className="text-2xl font-bold mb-8">Wallet Dashboard</h1>
-      
-      {loading && <div className="text-center"><Spinner /> Cargando...</div>} {/* Indicador de carga */}
-
-      {error && <div className="text-red-500 text-center">{error}</div>} {/* Mensaje de error */}
-      
-      {successMessage && <div className="text-green-500 text-center">{successMessage}</div>} {/* Mensaje de éxito */}
-
-      {!loading && !error && !successMessage && (
+      {loading && (
+        <div className="text-center">
+          <Spinner /> Cargando...
+        </div>
+      )}
+      {error && <div className="text-red-500 text-center">{error}</div>}
+      {successMessage && <div className="text-green-500 text-center">{successMessage}</div>}
+      {!loading && !error && (
         <>
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-            <WalletBalance walletAddress={account}  /> {/* Pasando balance al componente WalletBalance */}
-
-            <div className="space-y-4">
-              <BottomNavBar 
-                value={searchQuery}
-                onChange={setSearchQuery}
-                placeholder="Buscar transacciones..." 
-                onNavigateToSettings={() => {}}
-                onNavigateToProfile={() => {}}
-                onNavigateToAccount={() => {}}
-                onConnectWallet={() => {}}
-                onLogout={() => {}}
-              />
-              
-              <FilterPanel
-                selectedFilters={filters} // Pasa todo el estado de los filtros
-                onFilterSelect={(newFilterOption: FilterOption) => {
-                  setFilters(prevFilters => ({
-                    ...prevFilters, // Mantén los otros valores de los filtros
-                    ...newFilterOption, // Actualiza el filtro que cambió
-                  }));
-                }}
-                options={{
-                  type: ['all', 'transfer', 'stake', 'reward'],
-                  dateRange: ['all', 'today', 'week', 'month'],
-                  amount: ['all', 'high', 'low']
-                }}
-              />
-            </div>
+            <WalletBalance walletAddress={account!} balance={balance} />
+            <FilterPanel
+              selectedFilters={filters}
+              onFilterSelect={(newFilterOption: FilterOption) => {
+                setFilters((prevFilters) => ({
+                  ...prevFilters,
+                  ...newFilterOption,
+                }));
+              }}
+              options={{
+                type: ['all', 'transfer', 'stake', 'reward'],
+                dateRange: ['all', 'today', 'week', 'month'],
+                amount: ['all', 'high', 'low'],
+              }}
+            />
           </div>
-
           <div className="mt-8 grid gap-6 md:grid-cols-2">
-            <NFTGallery 
+            <NFTGallery
               nfts={nfts}
-              onTransfer={(nft) => {
+              onTransfer={(nft: NFT) => {
                 setSelectedNFT(nft);
                 setIsTransferModalOpen(true);
               }}
             />
-            
-            <TransactionHistory 
-              transactions={filteredTransactions}
-              filters={filters}
-            />
+            <TransactionHistory transactions={filteredTransactions} filters={filters} />
           </div>
-
           <NFTTransferModal
             isOpen={isTransferModalOpen}
             nft={selectedNFT}

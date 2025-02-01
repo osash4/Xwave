@@ -1,0 +1,9 @@
+/Users/yare/xwave/xwave-backend/target/debug/deps/libsystem_configuration-d9d1672f34542966.rmeta: /Users/yare/.cargo/registry/src/index.crates.io-6f17d22bba15001f/system-configuration-0.6.1/src/lib.rs /Users/yare/.cargo/registry/src/index.crates.io-6f17d22bba15001f/system-configuration-0.6.1/src/dynamic_store.rs /Users/yare/.cargo/registry/src/index.crates.io-6f17d22bba15001f/system-configuration-0.6.1/src/network_configuration.rs /Users/yare/.cargo/registry/src/index.crates.io-6f17d22bba15001f/system-configuration-0.6.1/src/network_reachability.rs /Users/yare/.cargo/registry/src/index.crates.io-6f17d22bba15001f/system-configuration-0.6.1/src/preferences.rs
+
+/Users/yare/xwave/xwave-backend/target/debug/deps/system_configuration-d9d1672f34542966.d: /Users/yare/.cargo/registry/src/index.crates.io-6f17d22bba15001f/system-configuration-0.6.1/src/lib.rs /Users/yare/.cargo/registry/src/index.crates.io-6f17d22bba15001f/system-configuration-0.6.1/src/dynamic_store.rs /Users/yare/.cargo/registry/src/index.crates.io-6f17d22bba15001f/system-configuration-0.6.1/src/network_configuration.rs /Users/yare/.cargo/registry/src/index.crates.io-6f17d22bba15001f/system-configuration-0.6.1/src/network_reachability.rs /Users/yare/.cargo/registry/src/index.crates.io-6f17d22bba15001f/system-configuration-0.6.1/src/preferences.rs
+
+/Users/yare/.cargo/registry/src/index.crates.io-6f17d22bba15001f/system-configuration-0.6.1/src/lib.rs:
+/Users/yare/.cargo/registry/src/index.crates.io-6f17d22bba15001f/system-configuration-0.6.1/src/dynamic_store.rs:
+/Users/yare/.cargo/registry/src/index.crates.io-6f17d22bba15001f/system-configuration-0.6.1/src/network_configuration.rs:
+/Users/yare/.cargo/registry/src/index.crates.io-6f17d22bba15001f/system-configuration-0.6.1/src/network_reachability.rs:
+/Users/yare/.cargo/registry/src/index.crates.io-6f17d22bba15001f/system-configuration-0.6.1/src/preferences.rs:

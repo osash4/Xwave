@@ -1,12 +1,12 @@
 
 // Definir los tipos para las transacciones y los filtros
-type Transaction = {
+interface Transaction  {
   hash: string;
   type: string;
   amount: number;
 };
 
-type Filters = {
+interface Filters  {
   type: string;
   amount: string;
 };

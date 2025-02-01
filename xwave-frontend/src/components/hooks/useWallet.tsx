@@ -14,45 +14,45 @@ export function useWallet(): WalletHook {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Verificar la conexión al cargar el hook
+    // Verificar si ya hay una cuenta conectada al cargar el hook
     checkConnection();
   }, []);
 
   // Lógica personalizada para verificar si ya hay una cuenta conectada
   async function checkConnection() {
     try {
-      const currentAccount = await getAccountFromWallet();
+      const currentAccount = await getAccountFromPlatform();
       if (currentAccount) {
-        setAccount(currentAccount);  // Establecer la cuenta conectada si existe
+        setAccount(currentAccount); // Establecer la cuenta conectada si existe
       }
-    } catch (error) {
-      console.error('Error al verificar la conexión del wallet:', error);
+    } catch (err) {
+      console.error('Error al verificar la conexión:', err);
     }
   }
 
-  // Lógica para conectar el wallet
+  // Lógica para conectar a la billetera de la plataforma
   async function connect() {
     setIsConnecting(true);
     setError(null);
     try {
-      const newAccount = await connectToWallet();
-      setAccount(newAccount);  // Establecer la nueva cuenta conectada
-    } catch (error: any) {
-      setError(error.message);  // Manejo de errores
-      console.error('Error al conectar el wallet:', error);
+      const newAccount = await connectToPlatformWallet();
+      setAccount(newAccount); // Establecer la nueva cuenta conectada
+    } catch (err: any) {
+      setError(err.message || 'Error al conectar a la billetera');
+      console.error('Error al conectar:', err);
     } finally {
       setIsConnecting(false);
     }
   }
 
-  // Lógica para desconectar el wallet
+  // Lógica para desconectar de la billetera de la plataforma
   async function disconnect() {
-    setIsConnecting(true);  // Mostrar estado de conexión mientras se desconecta
+    setIsConnecting(true);
     try {
-      await disconnectFromWallet();
-      setAccount(null);  // Limpiar la cuenta después de desconectar
-    } catch (error) {
-      console.error('Error al desconectar el wallet:', error);
+      await disconnectFromPlatformWallet();
+      setAccount(null); // Limpiar la cuenta después de desconectar
+    } catch (err) {
+      console.error('Error al desconectar:', err);
     } finally {
       setIsConnecting(false);
     }
@@ -63,28 +63,43 @@ export function useWallet(): WalletHook {
     disconnect,
     isConnecting,
     error,
-    account
+    account,
   };
 }
 
-// Función simulada para obtener la cuenta conectada en el wallet (sin Web3 ni Ethereum)
-async function getAccountFromWallet(): Promise<string | null> {
-  // Aquí se implementa la lógica para obtener la cuenta conectada de tu wallet, sea cual sea la blockchain
-  // Si no hay ninguna cuenta conectada, retornas null
-  // En este caso no implementamos detalles específicos de Web3 ni Ethereum
-  return null;  // Implementa tu propia lógica según el tipo de wallet que uses
+// Función simulada para obtener la cuenta conectada desde la plataforma
+async function getAccountFromPlatform(): Promise<string | null> {
+  // Aquí implementas la lógica para consultar al backend de tu plataforma
+  // si ya hay una sesión activa para el usuario.
+  const response = await fetch('/api/wallet/session'); // Ajusta el endpoint según tu API
+  if (!response.ok) {
+    throw new Error('No se pudo verificar la sesión');
+  }
+  const data = await response.json();
+  return data.account || null; // Retorna la cuenta si existe
 }
 
-// Función simulada para conectar el wallet
-async function connectToWallet(): Promise<string> {
-  // Aquí implementas la lógica para conectar tu wallet
-  // Debes retornar la nueva cuenta conectada en tu blockchain
-  return '0x1234...abcd';  // Simulando una cuenta conectada con una dirección ficticia
+// Función simulada para conectar a la billetera de la plataforma
+async function connectToPlatformWallet(): Promise<string> {
+  // Aquí implementas la lógica para iniciar sesión o conectar a la billetera
+  const response = await fetch('/api/wallet/connect', {
+    method: 'POST',
+  });
+  if (!response.ok) {
+    throw new Error('No se pudo conectar a la billetera');
+  }
+  const data = await response.json();
+  return data.account; // Retorna la cuenta conectada
 }
 
-// Función simulada para desconectar el wallet
-async function disconnectFromWallet(): Promise<void> {
-  // Implementa aquí la lógica para desconectar el wallet de tu blockchain
-  // Puedes eliminar la sesión de la wallet o restablecer el estado de la conexión
-  console.log('Wallet desconectado');
+// Función simulada para desconectar de la billetera de la plataforma
+async function disconnectFromPlatformWallet(): Promise<void> {
+  // Aquí implementas la lógica para cerrar sesión o desconectar
+  const response = await fetch('/api/wallet/disconnect', {
+    method: 'POST',
+  });
+  if (!response.ok) {
+    throw new Error('No se pudo desconectar de la billetera');
+  }
+  console.log('Desconexión exitosa');
 }
